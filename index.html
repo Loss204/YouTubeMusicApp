@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Music HD App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+        }
+        #sidebar {
+            width: 200px;
+            background-color: #282c34;
+            color: white;
+            padding: 15px;
+        }
+        #content {
+            flex-grow: 1;
+            padding: 15px;
+        }
+        #music-player {
+            margin-top: 20px;
+        }
+        input[type="file"], input[type="text"] {
+            margin: 10px 0;
+            display: block;
+            width: 100%;
+        }
+        img {
+            max-width: 100px; /* Set a limit to cover art size */
+            margin: 10px 0;
+        }
+        .song-item {
+            margin: 5px 0;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            color: white;
+            text-decoration: none;
+        }
+        .menu-item i {
+            margin-right: 10px;
+        }
+        #upload, #player, #search, #library {
+            display: none; /* Initially hidden */
+        }
+        #signup {
+            display: block; /* Show signup form first */
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>Menu</h2>
+    <ul>
+        <li><a class="menu-item" href="#signup"><i class="fas fa-user-plus"></i>User Signup</a></li>
+        <li><a class="menu-item" href="#upload" onclick="showSection('upload')"><i class="fas fa-upload"></i>Upload Music</a></li>
+        <li><a class="menu-item" href="#player" onclick="showSection('player')"><i class="fas fa-play-circle"></i>Music Player</a></li>
+        <li><a class="menu-item" href="#search" onclick="showSection('search')"><i class="fas fa-search"></i>Search Music</a></li>
+        <li><a class="menu-item" href="#library" onclick="showSection('library')"><i class="fas fa-music"></i>Music Library</a></li>
+    </ul>
+</div>
+
+<div id="content">
+    <div id="signup">
+        <h2>User Signup</h2>
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button onclick="signup()">Sign Up</button>
+        <div id="signupStatus"></div>
+    </div>
+
+    <div id="upload">
+        <h2>Upload Music</h2>
+        <input type="text" id="songTitle" placeholder="Song Title" required>
+        <input type="text" id="songArtist" placeholder="Artist Name" required>
+        <input type="file" accept="audio/*" id="musicFile" required>
+        <input type="file" accept="image/*" id="coverArtFile">
+        <button id="uploadButton" onclick="uploadMusic()" disabled>Upload</button>
+        <div id="uploadStatus"></div>
+        <img id="coverArt" src="" alt="Cover Art" style="display: none;">
+    </div>
+
+    <div id="player">
+        <h2>Music Player</h2>
+        <audio id="audioPlayer" controls>
+            <source id="audioSource" src="" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+        <button onclick="playMusic()">Play Music</button>
+        <h3 id="nowPlaying">Now Playing: <span id="currentTitle">None</span> by <span id="currentArtist">None</span></h3>
+        <img id="currentCoverArt" src="" alt="Cover Art" style="display: none; max-width: 100px;">
+    </div>
+
+    <div id="search">
+        <h2>Search Music</h2>
+        <input type="text" id="searchInput" placeholder="Search by Title or Artist" oninput="searchMusic()">
+        <div id="searchResults"></div>
+    </div>
+
+    <div id="library">
+        <h2>Music Library</h2>
+        <div id="musicLibrary"></div>
+    </div>
+</div>
+
+<script>
+    let uploadedMusic = [];
+    let userSignedUp = false;
+
+    function signup() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (username && password) {
+            userSignedUp = true; // Set the signup status to true
+            document.getElementById('signupStatus').innerText = "Signup Successful for " + username;
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+
+            // Show the upload section after successful signup
+            showSection('upload');
+            document.getElementById('uploadButton').disabled = false; // Enable upload button
+        } else {
+            document.getElementById('signupStatus').innerText = "Please fill in all fields.";
+        }
+    }
+
+    function showSection(sectionId) {
+        // Hide all sections
+        document.getElementById('upload').style.display = 'none';
+        document.getElementById('player').style.display = 'none';
+        document.getElementById('search').style.display = 'none';
+        document.getElementById('library').style.display = 'none';
+        document.getElementById('signup').style.display = 'none';
+
+        // Show the selected section
+        document.getElementById(sectionId).style.display = 'block';
+    }
+
+    function uploadMusic() {
+        const fileInput = document.getElementById('musicFile');
+        const titleInput = document.getElementById('songTitle').value;
+        const artistInput = document.getElementById('songArtist').value;
+        const coverArtInput = document.getElementById('coverArtFile');
+
+        if (fileInput.files.length > 0 && titleInput && artistInput) {
+            const file = fileInput.files[0];
+            const musicUrl = URL.createObjectURL(file);
+
+            // Handle Cover Art
+            let coverArtUrl = '';
+            if (coverArtInput.files.length > 0) {
+                const coverFile = coverArtInput.files[0];
+                coverArtUrl = URL.createObjectURL(coverFile);
+                document.getElementById('coverArt').src = coverArtUrl;
+                document.getElementById('coverArt').style.display = 'block';
+            }
+
+            // Add uploaded music info to the array
+            uploadedMusic.push({
+                title: titleInput,
+                artist: artistInput,
+                url: musicUrl,
+                cover: coverArtUrl || ''
+            });
+
+            document.getElementById('uploadStatus').innerText = "Upload Successful!";
+            document.getElementById('currentTitle').innerText = titleInput;
+            document.getElementById('currentArtist').innerText = artistInput;
+
+            // Clear input fields
+            document.getElementById('songTitle').value = '';
+            document.getElementById('songArtist').value = '';
+            document.getElementById('musicFile').value = '';
+            document.getElementById('coverArtFile').value = '';
+
+            // Update music library display
+            displayMusicLibrary();
+        } else {
+            document.getElementById('uploadStatus').innerText = "Please fill in all fields and select a file.";
+        }
+    }
+
+    function playMusic() {
+        const audioPlayer = document.getElementById('audioPlayer');
+        const audioSource = document.getElementById('audioSource');
+
+        // Get currently selected music based on the current title
+        const currentMusic = uploadedMusic.find(music => music.title === document.getElementById('currentTitle').innerText);
+
+        if (currentMusic) {
+            audioSource.src = currentMusic.url;
+            audioPlayer.load();
+            audioPlayer.play();
+            document.getElementById('currentCoverArt').src = currentMusic.cover; // Show cover art in the player
+            document.getElementById('currentCoverArt').style.display = 'block'; // Display cover art
+        } else {
+            alert("Please upload music first.");
+        }
+    }
+
+    function searchMusic() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const results = uploadedMusic.filter(music =>
+            music.title.toLowerCase().includes(query) ||
+            music.artist.toLowerCase().includes(query)
+        );
+
+        displaySearchResults
+displaySearchResults(results);
+    }
+
+    function displaySearchResults(results) {
+        const searchResultsDiv = document.getElementById('searchResults');
+        searchResultsDiv.innerHTML = ''; // Clear previous results
+
+        if (results.length > 0) {
+            results.forEach(music => {
+                const songItem = document.createElement('div');
+                songItem.classList.add('song-item');
+                songItem.innerHTML = `
+                    <img src="${music.cover}" alt="Cover Art" style="max-width: 50px;">
+                    <strong>${music.title}</strong> by ${music.artist}
+                    <button onclick="selectMusic('${music.title}')">Select</button>
+                `;
+                searchResultsDiv.appendChild(songItem);
+            });
+        } else {
+            searchResultsDiv.innerHTML = 'No results found.';
+        }
+    }
+
+    function selectMusic(title) {
+        const selectedMusic = uploadedMusic.find(music => music.title === title);
+        if (selectedMusic) {
+            document.getElementById('currentTitle').innerText = selectedMusic.title;
+            document.getElementById('currentArtist').innerText = selectedMusic.artist;
+            document.getElementById('currentCoverArt').src = selectedMusic.cover; // Show selected cover art
+            document.getElementById('currentCoverArt').style.display = 'block'; // Display cover art
+            playMusic();
+        }
+    }
+
+    function displayMusicLibrary() {
+        const musicLibraryDiv = document.getElementById('musicLibrary');
+        musicLibraryDiv.innerHTML = ''; // Clear previous library display
+
+        if (uploadedMusic.length > 0) {
+            uploadedMusic.forEach(music => {
+                const songItem = document.createElement('div');
+                songItem.classList.add('song-item');
+                songItem.innerHTML = `
+                    <img src="${music.cover}" alt="Cover Art" style="max-width: 50px;">
+                    <strong>${music.title}</strong> by ${music.artist}
+                    <button onclick="selectMusic('${music.title}')">Select</button>
+                    <button onclick="removeMusic('${music.title}')">Remove</button>
+                `;
+                musicLibraryDiv.appendChild(songItem);
+            });
+        } else {
+            musicLibraryDiv.innerHTML = 'No music uploaded yet.';
+        }
+    }
+
+    function removeMusic(title) {
+        uploadedMusic = uploadedMusic.filter(music => music.title !== title);
+        displayMusicLibrary();
+        document.getElementById('uploadStatus').innerText = `${title} has been removed from the library.`;
+        // Clear currently playing music details if the removed song was currently playing
+        const currentTitle = document.getElementById('currentTitle').innerText;
+        if (currentTitle === title) {
+            document.getElementById('currentTitle').innerText = 'None';
+            document.getElementById('currentArtist').innerText = 'None';
+            document.getElementById('currentCoverArt').src = ''; // Clear cover art
+            document.getElementById('currentCoverArt').style.display = 'none'; // Hide cover art
+            document.getElementById('audioPlayer').pause();
+            document.getElementById('audioSource').src = '';
+            document.getElementById('audioPlayer').load();
+        }
+    }
+</script>
+
+</body>
+</html>
